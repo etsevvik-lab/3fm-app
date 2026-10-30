@@ -1,0 +1,567 @@
+<title>3FM Заявки</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Мобильное приложение внутри Max: липкая шапка, лента карточек, нижнее меню, правка в выезжающей панели */
+:root{
+  --bg:#f2f3f6; --surface:#ffffff; --surface-2:#f7f8fa; --line:#e3e6ec;
+  --fg:#15181e; --muted:#667085; --accent:#2f56d6; --accent-soft:#e7edff; --on-accent:#ffffff;
+  --ok:#17905f; --ok-soft:#e3f5ec; --warn:#b7860f; --warn-soft:#fbf1d6; --bad:#c93b3b; --bad-soft:#fbe5e5;
+  --shadow:0 1px 2px rgba(20,30,60,.06),0 4px 16px rgba(20,30,60,.06);
+  --f-ui:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1014; --surface:#181b21; --surface-2:#1f232a; --line:#2a2f38;
+  --fg:#e9ebef; --muted:#97a0ae; --accent:#6f8dff; --accent-soft:#222c4d; --on-accent:#0e1014;
+  --ok:#43c08a; --ok-soft:#163327; --warn:#e2b64a; --warn-soft:#3a3118; --bad:#ef7373; --bad-soft:#3d1f1f;
+  --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1014; --surface:#181b21; --surface-2:#1f232a; --line:#2a2f38;
+  --fg:#e9ebef; --muted:#97a0ae; --accent:#6f8dff; --accent-soft:#222c4d; --on-accent:#0e1014;
+  --ok:#43c08a; --ok-soft:#163327; --warn:#e2b64a; --warn-soft:#3a3118; --bad:#ef7373; --bad-soft:#3d1f1f;
+  --shadow:0 1px 2px rgba(0,0,0,.4); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:15px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* служебная полоса прототипа */
+.proto{background:var(--accent-soft);color:var(--accent);font-size:12.5px;padding-block:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.proto b{font-weight:600}
+.proto select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:3px 6px;font-size:12.5px;color:var(--fg)}
+
+/* шапка */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line);padding-block:10px;display:flex;align-items:center;gap:10px;min-height:52px}
+.top h1{font-size:17px;font-weight:600;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconbtn{border:0;background:transparent;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--fg)}
+.iconbtn:hover{background:var(--surface-2)}
+.iconbtn svg{width:22px;height:22px}
+
+main{padding-block:12px 120px;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:14px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.spread{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;padding:3px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.chip.acc{background:var(--accent-soft);color:var(--accent)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.swatch{width:14px;height:14px;border-radius:4px;border:1px solid var(--line);display:inline-block;flex:none}
+.soon{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:2px 6px}
+
+/* шапка заявки */
+.req-head{display:grid;gap:10px}
+.req-head .t{font-size:13px;color:var(--muted)}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kv div{background:var(--surface-2);border-radius:10px;padding:8px 10px;min-width:0}
+.kv span{display:block;font-size:11.5px;color:var(--muted)}
+.kv b{font-size:15px;font-weight:600}
+.alert{display:flex;gap:10px;align-items:flex-start;background:var(--warn-soft);color:var(--fg);border-radius:12px;padding:10px 12px;font-size:13.5px}
+.alert i{font-style:normal;color:var(--warn);font-weight:700}
+.seg{display:flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;border-radius:8px;padding:7px 6px;font-size:13.5px;color:var(--muted);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:var(--shadow);font-weight:500}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tog{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 11px;font-size:13px}
+.tog[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+
+/* карточки позиций */
+.plist{display:flex;flex-direction:column;gap:8px}
+.pos{position:relative;background:var(--surface);border-radius:12px;box-shadow:var(--shadow);padding:11px 12px 11px 16px;display:grid;gap:6px;border:0;text-align:left;width:100%}
+.pos::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:0 4px 4px 0;background:var(--ok)}
+.pos.c-mid::before{background:var(--warn)}
+.pos.c-low::before{background:var(--bad)}
+.pos.sel{outline:2px solid var(--accent)}
+.pos .l1{display:flex;align-items:baseline;gap:10px}
+.pos .n{font-size:12px;color:var(--muted);min-width:34px}
+.pos .dim{font-size:16px;font-weight:500}
+.pos .qty{font-size:14px;color:var(--muted)}
+.pos .sum{margin-left:auto;font-size:14px;font-weight:500}
+.pos .l2{display:flex;gap:6px;flex-wrap:wrap}
+.pos .why{font-size:12.5px;color:var(--warn)}
+.pos .ck{position:absolute;right:10px;top:10px;width:22px;height:22px;border-radius:6px;border:2px solid var(--line);background:var(--surface)}
+.pos.sel .ck{background:var(--accent);border-color:var(--accent)}
+
+/* таблица */
+.tablewrap{overflow-x:auto;background:var(--surface);border-radius:12px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:11.5px;color:var(--muted);font-weight:500;position:sticky;top:0;background:var(--surface)}
+td.r,th.r{text-align:right}
+tr.c-mid td:first-child{box-shadow:inset 3px 0 var(--warn)}
+tr.c-low td:first-child{box-shadow:inset 3px 0 var(--bad)}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.sel td{background:var(--accent-soft)}
+td.ckc,th.ckc{width:34px;padding-right:0}
+.tck{display:inline-block;width:18px;height:18px;border-radius:5px;border:2px solid var(--line);background:var(--surface);vertical-align:middle}
+tr.sel .tck{background:var(--accent);border-color:var(--accent)}
+.bulk-sec{display:grid;gap:8px;padding:12px;border-radius:12px;background:var(--surface-2)}
+.bulk-sec h3{margin:0;font-size:14px;font-weight:600}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bad-soft);border-radius:10px;padding:10px;font-size:14px}
+
+/* исходник */
+.sheet-ph{background:repeating-linear-gradient(0deg,var(--surface) 0 26px,var(--surface-2) 26px 27px);border:1px solid var(--line);border-radius:12px;aspect-ratio:3/4;max-width:100%;display:grid;place-items:center;text-align:center;padding:16px;color:var(--muted);font-size:13px}
+
+/* нижнее меню */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.tabbar button{flex:1;border:0;background:transparent;padding:8px 2px 9px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted)}
+.tabbar button svg{width:22px;height:22px}
+.tabbar button[aria-current="page"]{color:var(--accent)}
+.badge{position:relative}
+.badge[data-n]::after{content:attr(data-n);position:absolute;top:-4px;right:-10px;background:var(--bad);color:#fff;font-size:10px;border-radius:999px;padding:0 5px;line-height:15px}
+
+/* панель действий заявки */
+.actions{position:fixed;left:0;right:0;bottom:calc(56px + env(safe-area-inset-bottom,0px));z-index:24;padding-block:8px;display:flex;gap:8px;background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.btn{border:0;border-radius:12px;padding:12px 14px;font-weight:600;font-size:15px;background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
+.btn.pri{background:var(--accent);color:var(--on-accent)}
+.btn.grow{flex:1}
+.btn.danger{color:var(--bad)}
+.btn[disabled]{opacity:.45;cursor:default}
+
+/* выезжающая панель правки */
+.scrim{position:fixed;inset:0;background:rgba(10,14,25,.45);z-index:40}
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--surface);border-radius:18px 18px 0 0;max-height:92%;overflow-y:auto;padding-block:8px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.18)}
+.grab{width:40px;height:4px;border-radius:4px;background:var(--line);margin:4px auto 10px}
+.form{display:grid;gap:12px}
+.f2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fld{display:grid;gap:4px;min-width:0}
+.fld label{font-size:12px;color:var(--muted)}
+.fld input,.fld select,.fld textarea{width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 11px;font-size:15px;min-width:0}
+.fld textarea{min-height:60px;resize:vertical}
+.fld input.num{font-family:var(--f-num)}
+.checks{display:flex;gap:14px;flex-wrap:wrap;font-size:14px}
+.checks label{display:flex;gap:6px;align-items:center}
+.crop{border:1px dashed var(--line);border-radius:12px;padding:10px;display:grid;gap:6px;font-size:12.5px;color:var(--muted)}
+.crop .strip{height:46px;border-radius:8px;background:repeating-linear-gradient(90deg,var(--surface-2) 0 14px,var(--surface) 14px 16px);display:flex;align-items:center;padding:0 10px;font-family:var(--f-num);color:var(--fg);font-size:14px}
+.changed{box-shadow:0 0 0 2px var(--accent-soft)}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(130px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;z-index:60;max-width:calc(100% - 32px)}
+
+/* общие списки разделов */
+.list{display:flex;flex-direction:column}
+.li{display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);background:transparent;border-left:0;border-right:0;border-top:0;text-align:left;width:100%}
+.li:last-child{border-bottom:0}
+.li .grow{flex:1;min-width:0}
+.li .ttl{font-weight:500}
+.h2{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:4px 2px 0}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tile{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:12px;border:0;text-align:left}
+.tile b{display:block;font-size:24px;font-weight:600}
+.tile span{font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}}}
+</style>
+
+<div class="proto gut" role="note">
+  <b>Прототип</b> · данные тестовых заявок З-2026-0014 и 0015, в таблицу ничего не пишется ·
+  <label for="role">роль:</label>
+  <select id="role">
+    <option value="owner">Дима (владелец)</option>
+    <option value="manager">Мария (менеджер)</option>
+    <option value="worker">Рабочий цеха</option>
+  </select>
+</div>
+<header class="top gut" id="top"></header>
+<main class="gut" id="view"></main>
+<div id="actions"></div>
+<nav class="tabbar" id="tabbar" aria-label="Разделы"></nav>
+<div id="overlay"></div>
+
+<script>
+/* ===== Иконки ===== */
+const I = {
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  req:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
+  orders:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/></svg>',
+  clients:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.5a3.3 3.3 0 0 1 0 6.5M18 14.8c2 .7 3.2 2.4 3.5 5.2"/></svg>',
+  more:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>',
+  shop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>'
+};
+
+/* ===== Справочники (из прайса «Москва Казань») ===== */
+const PRICE = { // матовые / глянец / металлик, ₽/м²
+  "Bravo":[6500,7500,13000],"Premium P1-P11":[9800,10800,16300],"Modern M1-M17":[9300,10300,15300],
+  "Velvet V1-V5":[10500,11500,13500],"Standart S1-S5":[7400,8400,14000],
+  "Integro ручка 1-2":[8000,9000,14500],"Integro ручка 3-8":[8300,9300,14800],
+  "Integro ручка 9-12":[10500,11500,16800],"Integro комбинированные":[9000,10000,15500]};
+const COATS = ["Матовые","Высокий глянец","Металлик"];
+const THICK = [10,16,19,22,25];
+const EDGES = ["не указана","Тип 1 (R0)","Тип 2 (R1)","Тип 3 (R2)","Тип 4 (R3, ступень)","Тип 5 (R5)","Тип 6 (скос 2)","Тип 7 (45°)","Тип 8 (R3, 12)","Тип 9 (12,8)"];
+const NCS = {"NCS S 1515-B":"#b4c1cb","NCS S 0502-Y50R":"#efe9e1"};
+
+/* ===== Данные заявки (тест: три фото Эльмиры) ===== */
+const P='Premium P1-P11', B='Bravo';
+// [лист, №, В, Ш, кол, модель, толщ, фрез, присадки, рисунок, 2стороны, эскиз, примечание, уверенность, заказ]
+const RAW = [
+ [1,1,860,582,1,P,22,1,'','',1,0,'','h',1],[1,2,756,596,1,P,22,1,'','',0,0,'','h',1],
+ [1,3,756,584,1,P,22,1,'756 110/110','',0,0,'','h',1],[1,4,756,396,1,P,22,1,'756 100/100','',0,0,'','h',1],
+ [1,5,189,796,2,P,22,1,'','единый рисунок на 3 фасада',0,0,'','h',1],[1,6,370,796,1,P,22,1,'','в паре с поз. 5',0,0,'','h',1],
+ [1,7,155,596,1,P,22,1,'','',0,0,'','m',1],[1,8,189,796,2,P,22,1,'','единый рисунок на 3 фасада',0,0,'','h',1],
+ [1,9,370,796,1,P,22,1,'','в паре с поз. 8',0,0,'','h',1],[1,10,370,596,1,P,22,1,'','',0,0,'','h',1],
+ [1,11,382,596,1,P,22,1,'382 80/80','',0,1,'рамка для СВЧ: окно 452×250, отступы 66 и 72','h',1],
+ [1,12,756,100,1,B,22,0,'','',0,0,'','h',1],[1,13,756,30,1,B,22,0,'','',0,0,'','h',1],
+ [1,14,1350,96,1,B,16,0,'','',0,0,'','h',1],[1,15,2750,96,1,B,16,0,'','',0,0,'','h',1],[1,16,600,96,2,B,16,0,'','',0,0,'','h',1],
+ [2,10,634,596,1,P,22,1,'634 280/80','единый рисунок на 2 фасада',0,0,'','r',1],[2,11,336,596,1,P,22,1,'596 100/100','в паре с поз. 10',0,0,'','r',1],
+ [2,12,756,574,1,P,22,1,'756 100/100','',0,0,'','r',1],[2,13,2416,100,1,P,22,1,'','',0,0,'','r',1],
+ [2,14,1667,350,1,P,22,1,'','',0,0,'','r',1],[2,15,746,350,1,P,22,1,'','',0,0,'','r',1],
+ [2,16,426,346,2,P,22,1,'426 80/80','',0,0,'','r',1],[2,17,746,362,2,P,22,1,'746 100/100','',0,0,'','r',1],
+ [2,18,1016,100,1,B,22,0,'','',0,0,'','r',1],[2,19,1016,30,1,B,22,0,'','',0,0,'','r',1],
+ [2,20,320,65,1,B,22,0,'','',0,0,'','r',1],[2,21,1600,65,1,B,22,0,'','',0,0,'','r',1],
+ [2,22,2700,65,1,B,22,0,'','',0,0,'','r',1],[2,23,900,65,1,B,22,0,'','',0,0,'','r',1],
+ [2,24,700,65,1,B,22,0,'','',0,0,'','r',1],[2,25,1800,65,1,B,22,0,'','',0,0,'','r',1],
+ [2,26,700,96,1,B,16,0,'','',0,0,'','r',1],[2,27,300,96,1,B,16,0,'','',0,0,'','r',1],
+ [3,1,676,544,1,P,22,1,'676 100/100','единый рисунок на 2 фасада',0,0,'','h',2],[3,2,336,544,1,P,22,1,'544 100/100','в паре с поз. 1',0,0,'','h',2],
+ [3,3,676,446,2,P,22,1,'676 120/100','единый рисунок на 2 фасада',0,0,'две зеркальные схемы','h',2],
+ [3,4,336,446,2,P,22,1,'336 70/70','в паре с поз. 3',0,0,'две зеркальные схемы','h',2],
+ [3,5,676,451,2,P,22,1,'676 100/100','единый рисунок на 2 фасада',0,0,'','h',2],[3,6,336,451,2,P,22,1,'336 70/70','в паре с поз. 5',0,0,'','h',2],
+ [3,7,676,421,2,P,22,1,'676 100/100','единый рисунок на 2 фасада',0,0,'','h',2],[3,8,336,421,2,P,22,1,'421 70/70','в паре с поз. 7',0,0,'','m',2],
+ [3,9,1016,322,1,P,22,1,'','',1,0,'','m',2]];
+let uid=0;
+const POS = RAW.map(r=>({id:++uid,sheet:r[0],n:r[1],h:r[2],w:r[3],qty:r[4],model:r[5],coat:'Матовые',th:r[6],
+  mill:r[7]?'фр-ка':'',drill:r[8],pattern:r[9],both:!!r[10],sketch:!!r[11],note:r[12],conf:r[13],order:r[14],
+  color:r[14]===1?'NCS S 1515-B':'NCS S 0502-Y50R',edge:'не указана'}));
+const WHY = {m:'нейросеть не уверена в размере',r:'лист 2: нумерация повторяется с 10 — возможно, другой заказ'};
+
+const ORDERS = {1:{id:'З-2026-0014',color:'NCS S 1515-B'},2:{id:'З-2026-0015',color:'NCS S 0502-Y50R'}};
+const orderKeys = () => Object.keys(ORDERS).map(Number);
+function newOrder(color){ const k=Math.max(...orderKeys())+1; ORDERS[k]={id:'З-2026-'+String(13+k).padStart(4,'0'),color:color||'уточнить'}; return k; }
+const orderLabel = k => `${ORDERS[k].id} · заказ ${k}`;
+const CLIENT = {name:'Эльмира',city:'Казань',code:'K-005',profile:'Остальные регионы',pack:300,discount:0,habit:'фрезерованные = Premium'};
+
+/* ===== Расчёт (как формулы ядра) ===== */
+const area = p => p.h*p.w*p.qty/1e6;
+const drillCount = s => { if(!s) return 0; const t=s.trim().split(/\s+/)[1]||''; return t.split(/[\/\\]/).filter(Boolean).length; };
+function calc(p){
+  const a=area(p), pr=(PRICE[p.model]||[0,0,0])[Math.max(0,COATS.indexOf(p.coat))];
+  const dop=Math.round((p.th===22?800:p.th===25?1000:0)*a + drillCount(p.drill)*p.qty*60);
+  return {a,pr,dop,sum:a*pr+dop};
+}
+const rub = v => Math.round(v).toLocaleString('ru-RU')+' ₽';
+const m2 = v => v.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2})+' м²';
+
+/* ===== Состояние ===== */
+const S = {role:'owner',tab:'req',screen:'list',order:1,inner:'pos',view:'cards',onlyDoubt:false,select:false,sel:new Set(),log:[],dirty:false,editing:null};
+
+/* ===== Реестр разделов: модуль = запись здесь; добавить или убрать раздел — одна строка ===== */
+const SECTIONS = {
+  home:   {title:'Главная',   icon:'home',    roles:['owner','manager','worker'], ver:'v3', render:renderHome},
+  req:    {title:'Заявки',    icon:'req',     roles:['owner','manager'],          ver:'v1', render:renderReq},
+  orders: {title:'Заказы',    icon:'orders',  roles:['owner','manager'],          ver:'v3', render:renderOrders},
+  clients:{title:'Клиенты',   icon:'clients', roles:['owner','manager'],          ver:'v2', render:renderClients},
+  shop:   {title:'Цех',       icon:'shop',    roles:['worker'],                   ver:'v5', render:renderShop},
+  more:   {title:'Ещё',       icon:'more',    roles:['owner','manager','worker'], ver:'',   render:renderMore}
+};
+const MORE = [
+  {k:'prices', t:'Прайсы и каталог', d:'Цены по профилю, PDF клиенту, серии с картинками', ver:'v4', roles:['owner','manager']},
+  {k:'shop',   t:'Цех',              d:'Очередь, отметки «Сделал», выработка',              ver:'v5', roles:['owner']},
+  {k:'money',  t:'Деньги',           d:'Оплаты, долги, счета',                              ver:'v6', roles:['owner']},
+  {k:'learn',  t:'Обучение',         d:'Правила из правок, точность нейросети',             ver:'v4', roles:['owner','manager']},
+  {k:'settings',t:'Настройки',       d:'Сотрудники, роли и права',                          ver:'v2', roles:['owner']},
+  {k:'mywork', t:'Моя выработка',    d:'Сделано за неделю и месяц, начисления',             ver:'v5', roles:['worker']}
+];
+
+/* ===== Каркас ===== */
+const $ = id => document.getElementById(id);
+function render(){
+  const tabs = Object.entries(SECTIONS).filter(([k,s])=>s.roles.includes(S.role));
+  if(!tabs.find(([k])=>k===S.tab)) S.tab = tabs[0][0];
+  $('tabbar').innerHTML = tabs.map(([k,s])=>`<button data-tab="${k}" ${S.tab===k?'aria-current="page"':''}>
+    <span class="badge" ${k==='req'?'data-n="4"':''}>${I[s.icon]}</span>${s.title}</button>`).join('');
+  $('actions').innerHTML='';
+  SECTIONS[S.tab].render();
+}
+function topbar(title, back){
+  $('top').innerHTML = (back?`<button class="iconbtn" data-act="back" aria-label="Назад">${I.back}</button>`:'')+`<h1>${title}</h1>`;
+}
+function stub(ver, text){ return `<div class="row small muted"><span class="soon">${ver} · в разработке</span>${text||'Экран-набросок: содержимое примерное'}</div>`; }
+
+/* ===== Заявки ===== */
+function renderReq(){
+  if(S.screen==='list') return renderReqList();
+  renderRequest();
+}
+function renderReqList(){
+  topbar('Заявки');
+  const ks=orderKeys();
+  const rows=ks.map(k=>{const l=POS.filter(p=>p.order===k);const d=l.filter(p=>p.conf!=='h').length;
+    return reqRow(k,`Эльмира · 3 фото, заказ ${k} из ${ks.length}`,l.length,l.reduce((s,p)=>s+calc(p).sum,0),d?'warn':'ok',d?d+' сомнительных':'всё проверено');}).join('');
+  $('view').innerHTML = `
+  <div class="seg" role="group" aria-label="Статус"><button aria-pressed="true">На проверке · ${ks.length+2}</button><button>КП отправлено · 1</button><button>Все</button></div>
+  <div class="card list">
+    ${rows}
+    <div class="li"><div class="grow"><div class="ttl">З-2026-0013 <span class="muted small">· из бланка Excel</span></div><div class="small muted">Эльмира · 27 поз. · 76 583 ₽</div></div><span class="chip ok">всё прочитано</span></div>
+    <div class="li"><div class="grow"><div class="ttl">З-2026-0012 <span class="muted small">· из бланка Excel</span></div><div class="small muted">Эльмира · 16 поз. · 40 672 ₽</div></div><span class="chip ok">всё прочитано</span></div>
+  </div>
+  <p class="small muted">Открывается из сводки в боте кнопкой «Открыть в приложении» сразу на нужной заявке.</p>`;
+}
+function reqRow(o,sub,n,sum,cls,flag){
+  return `<button class="li" data-open="${o}"><div class="grow"><div class="ttl">${ORDERS[o].id}</div>
+    <div class="small muted">${sub} · ${n} поз. · ${rub(sum)}</div></div><span class="chip ${cls}">${flag}</span></button>`;
+}
+function renderRequest(){
+  const o=S.order, list=POS.filter(p=>p.order===o);
+  const tot=list.reduce((s,p)=>{const c=calc(p);s.a+=c.a;s.sum+=c.sum;return s},{a:0,sum:0});
+  const pack=tot.a*CLIENT.pack, doubt=list.filter(p=>p.conf!=='h').length;
+  topbar(`${ORDERS[o].id}`, true);
+  const shown = list.filter(p=>!S.onlyDoubt||p.conf!=='h');
+  $('view').innerHTML = `
+  <section class="card req-head">
+    <div class="spread"><div><div style="font-weight:600;font-size:17px">${CLIENT.name} <span class="muted small">${CLIENT.city} · ${CLIENT.code}</span></div>
+      <div class="t">Заказ ${o} из ${orderKeys().length} в пачке · статус: на проверке</div></div>
+      <span class="chip warn">на проверке</span></div>
+    <div class="row small"><span class="swatch" style="background:${NCS[ORDERS[o].color]}"></span>${ORDERS[o].color} · матовое</div>
+    <div class="kv">
+      <div><span>Площадь</span><b class="num">${m2(tot.a)}</b></div>
+      <div><span>Изделия</span><b class="num">${rub(tot.sum)}</b></div>
+      <div><span>С упаковкой</span><b class="num">${rub(tot.sum+pack)}</b></div>
+    </div>
+    <div class="row small">
+      <span class="chip acc">Прайс: ${CLIENT.profile}</span>
+      <span class="chip">Скидка: ${CLIENT.discount}% · предварительно</span>
+      <span class="chip">Упаковка ${CLIENT.pack} ₽/м²</span>
+    </div>
+    ${o===1?`<div class="alert"><i>!</i><div>Лист 2: нумерация повторяется с 10, хотя заказ 1 уже закончился на 16. Похоже, это продолжение другого заказа. Проверьте и при необходимости перенесите позиции в заказ 2.</div></div>`:''}
+    <div class="seg" role="group" aria-label="Что показать">
+      <button data-inner="pos" aria-pressed="${S.inner==='pos'}">Позиции · ${list.length}</button>
+      <button data-inner="src" aria-pressed="${S.inner==='src'}">Исходник · 3 фото</button>
+      <button data-inner="log" aria-pressed="${S.inner==='log'}">Правки · ${S.log.length}</button>
+    </div>
+  </section>
+  ${S.inner==='pos'?`
+  <div class="tools">
+    <button class="tog" data-act="doubt" aria-pressed="${S.onlyDoubt}">Только сомнительные · ${doubt}</button>
+    <button class="tog" data-act="select" aria-pressed="${S.select}">${S.select?'Готово':'Выбрать'}</button>
+    <span style="flex:1"></span>
+    <div class="seg" role="group" aria-label="Вид" style="width:auto">
+      <button data-view="cards" aria-pressed="${S.view==='cards'}">Карточки</button>
+      <button data-view="table" aria-pressed="${S.view==='table'}">Таблица</button>
+    </div>
+  </div>
+  ${S.view==='cards'?`<div class="plist">${shown.map(posCard).join('')}</div>`:posTable(shown)}
+  <button class="btn" data-act="add" style="width:100%">+ Добавить позицию</button>`
+  : S.inner==='src' ? srcView() : logView()}`;
+  $('actions').innerHTML = S.select
+    ? `<div class="actions gut"><button class="btn grow pri" data-act="bulk" ${S.sel.size?'':'disabled'}>Действия с выбранными · ${S.sel.size}</button><button class="btn" data-act="selall">${S.sel.size===shown.length&&shown.length?'Снять все':'Все'}</button><button class="btn" data-act="select">Отмена</button></div>`
+    : `<div class="actions gut"><button class="btn grow" data-act="save" ${S.dirty?'':'disabled'}>Сохранить</button><button class="btn grow pri" data-act="ok">Верно</button></div>`;
+}
+function chips(p){
+  const c=[`<span class="chip">${p.model.replace(' P1-P11','')}</span>`,`<span class="chip">${p.th} мм</span>`];
+  if(p.mill) c.push(`<span class="chip">фрезеровка</span>`);
+  if(p.drill) c.push(`<span class="chip acc">пр-ка ${p.drill.replace('/','\\')}</span>`);
+  if(p.pattern) c.push(`<span class="chip">${p.pattern.startsWith('в паре')?'рисунок: '+p.pattern:p.pattern}</span>`);
+  if(p.both) c.push(`<span class="chip warn">2 стороны · уточнить</span>`);
+  if(p.sketch) c.push(`<span class="chip warn">эскиз</span>`);
+  return c.join('');
+}
+function posCard(p){
+  const c=calc(p), cls=p.conf==='m'?'c-mid':p.conf==='r'?'c-mid':'';
+  return `<button class="pos ${cls} ${S.sel.has(p.id)?'sel':''}" data-pos="${p.id}">
+    ${S.select?'<span class="ck" aria-hidden="true"></span>':''}
+    <div class="l1"><span class="n">л${p.sheet}·${p.n}</span><span class="dim num">${p.h} × ${p.w}</span><span class="qty">× ${p.qty}</span>
+      ${S.select?'':`<span class="sum num">${rub(c.sum)}</span>`}</div>
+    <div class="l2">${chips(p)}</div>
+    ${p.note?`<div class="small muted">${p.note}</div>`:''}
+    ${p.conf!=='h'?`<div class="why">${WHY[p.conf]}</div>`:''}
+  </button>`;
+}
+function posTable(list){
+  return `<div class="tablewrap"><table><thead><tr>${S.select?'<th class="ckc"></th>':''}<th>Лист·№</th><th class="r">В</th><th class="r">Ш</th><th class="r">Кол</th><th>Модель</th><th class="r">мм</th><th>Присадки</th><th>Рисунок</th><th class="r">м²</th><th class="r">Сумма</th></tr></thead><tbody>
+  ${list.map(p=>{const c=calc(p);return `<tr class="${p.conf!=='h'?'c-mid':''} ${S.sel.has(p.id)?'sel':''}" data-pos="${p.id}">${S.select?'<td class="ckc"><span class="tck"></span></td>':''}<td>л${p.sheet}·${p.n}</td><td class="r num">${p.h}</td><td class="r num">${p.w}</td><td class="r num">${p.qty}</td><td>${p.model.replace(' P1-P11','')}</td><td class="r num">${p.th}</td><td class="num">${p.drill||''}</td><td>${p.pattern?'да':''}</td><td class="r num">${c.a.toFixed(3)}</td><td class="r num">${rub(c.sum)}</td></tr>`}).join('')}
+  </tbody></table></div>`;
+}
+function srcView(){
+  return `<div class="tiles">
+    ${[1,2,3].map(n=>`<div class="sheet-ph">Фото ${n}<br>${n===3?'лист с заголовком S0502-Y50R':'лист '+n}<br><span class="small">в рабочей версии здесь фото из заявки с увеличением</span></div>`).join('')}
+  </div>
+  <p class="small muted">Сверка «фото рядом с данными»: в карточке позиции показан фрагмент фото, откуда взята строка.</p>`;
+}
+function logView(){
+  if(!S.log.length) return `<div class="card small muted">Правок пока нет. Каждая правка пишется как «было → стало» и идёт в обучение нейросети: так бот запоминает, как пишет этот клиент.</div>`;
+  return `<div class="card list">${S.log.slice().reverse().map(l=>`<div class="li"><div class="grow"><div class="ttl">${l.pos} · ${l.field}</div><div class="small"><span class="muted">${l.from||'—'}</span> → <b>${l.to||'—'}</b></div></div><span class="small muted">${l.who}, ${l.time}</span></div>`).join('')}</div>`;
+}
+
+/* ===== Правка позиции ===== */
+function openEdit(id){
+  const isNew = id==='new';
+  const p = isNew ? {id:++uid,sheet:0,n:POS.filter(x=>x.order===S.order).length+1,h:'',w:'',qty:1,model:P,coat:'Матовые',th:22,mill:'',drill:'',pattern:'',both:false,sketch:false,note:'',conf:'h',order:S.order,color:ORDERS[S.order].color,edge:'не указана'} : POS.find(x=>x.id==id);
+  S.editing={p,isNew};
+  const opt=(arr,v)=>arr.map(x=>`<option ${String(x)===String(v)?'selected':''}>${x}</option>`).join('');
+  $('overlay').innerHTML = `<div class="scrim" data-act="close"></div>
+  <section class="drawer gut" role="dialog" aria-label="Позиция">
+    <div class="grab"></div>
+    <div class="spread" style="margin-bottom:10px"><b style="font-size:17px">${isNew?'Новая позиция':'Позиция л'+p.sheet+'·'+p.n}</b>
+      ${p.conf!=='h'&&!isNew?`<span class="chip warn">проверить</span>`:''}</div>
+    <form class="form" id="ef">
+      ${isNew?'':`<div class="crop"><span>Фрагмент фото ${p.sheet}, строка ${p.n}</span><div class="strip">${p.n}  ${p.h} × ${p.w}  ${p.qty} шт ${p.drill?'· пр-ка '+p.drill:''}</div></div>`}
+      <div class="f2">
+        <div class="fld"><label for="f-h">Высота, мм</label><input class="num" id="f-h" inputmode="numeric" value="${p.h}"></div>
+        <div class="fld"><label for="f-w">Ширина, мм</label><input class="num" id="f-w" inputmode="numeric" value="${p.w}"></div>
+        <div class="fld"><label for="f-qty">Кол-во</label><input class="num" id="f-qty" inputmode="numeric" value="${p.qty}"></div>
+      </div>
+      <div class="fld"><label for="f-model">Модель (серия)</label><select id="f-model">${opt(Object.keys(PRICE),p.model)}</select></div>
+      <div class="f2">
+        <div class="fld" style="grid-column:span 2"><label for="f-coat">Покрытие</label><select id="f-coat">${opt(COATS,p.coat)}</select></div>
+        <div class="fld"><label for="f-th">Толщина</label><select id="f-th">${opt(THICK,p.th)}</select></div>
+      </div>
+      <div class="fld"><label for="f-color">Цвет</label><input id="f-color" value="${p.color}"></div>
+      <div class="f2">
+        <div class="fld" style="grid-column:span 2"><label for="f-mill">Фрезеровка</label><input id="f-mill" value="${p.mill}" placeholder="например, P-3 или фр-ка"></div>
+      </div>
+      <div class="fld"><label for="f-order">В каком заказе пачки (номер заявки)</label><select id="f-order">${orderKeys().map(k=>`<option value="${k}" ${k===p.order?'selected':''}>${orderLabel(k)}</option>`).join('')}<option value="new">+ Новый заказ</option></select></div>
+      <div class="fld"><label for="f-edge">Обкатная фреза (кромка)</label><select id="f-edge">${opt(EDGES,p.edge)}</select></div>
+      <div class="fld"><label for="f-drill">Присадки под петли</label><input class="num" id="f-drill" value="${p.drill}" placeholder="756 100/100"></div>
+      <div class="fld"><label for="f-pattern">Единый рисунок</label><input id="f-pattern" value="${p.pattern}"></div>
+      <div class="checks"><label><input type="checkbox" id="f-both" ${p.both?'checked':''}> Покраска с 2 сторон</label><label><input type="checkbox" id="f-sketch" ${p.sketch?'checked':''}> Эскиз</label></div>
+      <div class="fld"><label for="f-note">Примечание</label><textarea id="f-note">${p.note}</textarea></div>
+      <div class="row">
+        ${isNew?'':'<button type="button" class="btn danger" data-act="del">Удалить</button>'}
+        <span style="flex:1"></span>
+        <button type="button" class="btn" data-act="close">Отмена</button>
+        <button type="submit" class="btn pri">Применить</button>
+      </div>
+    </form>
+  </section>`;
+}
+const FIELDS = [['h','Высота','num'],['w','Ширина','num'],['qty','Кол-во','num'],['model','Модель'],['coat','Покрытие'],['th','Толщина','num'],['color','Цвет'],['mill','Фрезеровка'],['order','Заказ','num'],['edge','Кромка'],['drill','Присадки'],['pattern','Единый рисунок'],['note','Примечание']];
+function applyEdit(){
+  const {p,isNew}=S.editing; const label=isNew?'новая':'л'+p.sheet+'·'+p.n;
+  if($('f-order').value==='new'){ const k=newOrder($('f-color').value); $('f-order').insertAdjacentHTML('beforeend',`<option value="${k}">${k}</option>`); $('f-order').value=k; }
+  FIELDS.forEach(([k,name,t])=>{ let v=$('f-'+k).value; if(t) v=Number(v)||0;
+    if(String(v)!==String(p[k])){ if(!isNew) log(label,name,p[k],v); p[k]=v; }});
+  ['both','sketch'].forEach(k=>{const v=$('f-'+k).checked; if(v!==p[k]){ if(!isNew) log(label,k==='both'?'2 стороны':'Эскиз',p[k]?'да':'нет',v?'да':'нет'); p[k]=v;}});
+  if(isNew){ POS.push(p); log('новая','Позиция добавлена','',`${p.h}×${p.w}×${p.qty}`); }
+  p.conf='h'; S.dirty=true; closeEdit(); render(); toast(isNew?'Позиция добавлена':'Изменения применены, сумма пересчитана');
+}
+function log(pos,field,from,to){ const d=new Date(); S.log.push({pos,field,from,to,who:S.role==='owner'?'Дима':'Мария',time:d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}); }
+function closeEdit(){ $('overlay').innerHTML=''; S.editing=null; }
+
+/* ===== Действия с выбранными позициями ===== */
+const BULK_FIELDS = {model:['Модель',Object.keys(PRICE)],coat:['Покрытие',COATS],th:['Толщина',THICK],color:['Цвет',null],mill:['Фрезеровка',null],edge:['Обкатная фреза',EDGES],drill:['Присадки',null],pattern:['Единый рисунок',null],note:['Примечание',null]};
+function openBulk(){
+  const n=S.sel.size, others=orderKeys().filter(k=>k!==S.order);
+  $('overlay').innerHTML = `<div class="scrim" data-act="close"></div>
+  <section class="drawer gut" role="dialog" aria-label="Действия с выбранными">
+    <div class="grab"></div>
+    <b style="font-size:17px">Выбрано позиций: ${n}</b>
+    <div class="form" style="margin-top:12px">
+      <div class="bulk-sec"><h3>Перенести в другой заказ</h3>
+        <div class="fld"><label for="b-to">Куда</label><select id="b-to">${others.map(k=>`<option value="${k}">${orderLabel(k)} · ${ORDERS[k].color}</option>`).join('')}<option value="new">+ Новый заказ (отдельная заявка)</option></select></div>
+        <label class="small row"><input type="checkbox" id="b-color" checked> взять цвет заказа, куда переносим</label>
+        <button class="btn pri" data-act="b-move">Перенести ${n}</button></div>
+      <div class="bulk-sec"><h3>Изменить у всех выбранных</h3>
+        <div class="f2"><div class="fld"><label for="b-field">Поле</label><select id="b-field">${Object.entries(BULK_FIELDS).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('')}</select></div>
+        <div class="fld" style="grid-column:span 2" id="b-valwrap"></div></div>
+        <button class="btn pri" data-act="b-set">Применить к ${n}</button></div>
+      <div class="bulk-sec"><h3>Удалить</h3><div id="b-delwrap"><button class="btn danger" data-act="b-delask">Удалить ${n} поз.</button></div></div>
+      <button class="btn" data-act="close">Закрыть</button>
+    </div>
+  </section>`;
+  bulkVal();
+  $('b-field').addEventListener('change',bulkVal);
+}
+function bulkVal(){
+  const [name,opts]=BULK_FIELDS[$('b-field').value];
+  $('b-valwrap').innerHTML = `<label for="b-val">Новое значение</label>`+(opts?`<select id="b-val">${opts.map(x=>`<option>${x}</option>`).join('')}</select>`:`<input id="b-val" placeholder="${name}">`);
+}
+function selected(){ return POS.filter(p=>S.sel.has(p.id)); }
+function bulkDone(msg){ S.sel.clear(); S.select=false; S.dirty=true; closeEdit(); render(); toast(msg); }
+function toast(t){ const el=document.createElement('div'); el.className='toast'; el.textContent=t; document.body.appendChild(el); setTimeout(()=>el.remove(),2200); }
+
+/* ===== Другие разделы (наброски) ===== */
+function renderHome(){
+  topbar(S.role==='worker'?'Цех · сегодня':'Главная');
+  if(S.role==='worker'){ $('view').innerHTML = `${stub('v5','Главная рабочего: только его участок')}
+    <div class="tiles"><div class="tile"><b>2</b><span>заказа в очереди на покраску</span></div><div class="tile"><b>4,1 м²</b><span>сделано сегодня</span></div></div>
+    <div class="card list"><div class="li"><div class="grow"><div class="ttl">2026-0006 · Илья</div><div class="small muted">покраска · срок 05.11</div></div><button class="btn pri">Сделал</button></div>
+    <div class="li"><div class="grow"><div class="ttl">2026-0007 · пример</div><div class="small muted">шлифовка · срок 07.11</div></div><button class="btn">Начать</button></div></div>`; return; }
+  $('view').innerHTML = `${stub('v3','Главная: своя для каждой роли, состав решим позже')}
+  <div class="tiles">
+    <button class="tile" data-goto="req"><b>4</b><span>заявки на проверке</span></button>
+    <div class="tile"><b>1</b><span>КП без ответа 3 дня</span></div>
+    <div class="tile"><b>0</b><span>заказов с горящим сроком</span></div>
+    <div class="tile"><b>117 254 ₽</b><span>в заявках на проверке</span></div>
+  </div>
+  <h2 class="h2">Напоминания</h2>
+  <div class="card list">
+    <div class="li"><div class="grow"><div class="ttl">З-2026-0014 ждёт проверки 18 ч</div><div class="small muted">Эльмира · 18 сомнительных позиций</div></div><span class="chip warn">открыть</span></div>
+    <div class="li"><div class="grow"><div class="ttl">КП-2026-0008 без ответа</div><div class="small muted">пример · напомнить клиенту</div></div><span class="chip">3 дня</span></div>
+  </div>`;
+}
+function renderOrders(){ topbar('Заказы'); $('view').innerHTML = `${stub('v3','Сначала просмотр, правки позже')}
+  <div class="seg"><button aria-pressed="true">В работе</button><button>Ждут аванса</button><button>Готовы</button></div>
+  <div class="card list">
+    ${[['2026-0006','Илья','покраска 60%','срок 05.11'],['2026-0007','пример','распил','срок 07.11'],['2026-0005','пример','ждёт аванса 70%','—']].map(r=>`<div class="li"><div class="grow"><div class="ttl">${r[0]} · ${r[1]}</div><div class="small muted">${r[2]}</div></div><span class="small muted">${r[3]}</span></div>`).join('')}
+  </div>`; }
+function renderClients(){ topbar('Клиенты'); $('view').innerHTML = `${stub('v2')}
+  <div class="card"><div class="spread"><div><div style="font-weight:600">${CLIENT.name}</div><div class="small muted">${CLIENT.city} · ${CLIENT.code}</div></div><span class="chip acc">${CLIENT.profile}</span></div>
+    <div class="kv" style="margin-top:10px"><div><span>Упаковка</span><b>300 ₽/м²</b></div><div><span>Обычно берёт</span><b style="font-size:13px">фрез. = Premium</b></div><div><span>Объём за месяц</span><b>11,3 м²</b></div></div>
+    <div class="small muted" style="margin-top:10px">Соответствия названий (из обучения): пока нет</div></div>
+  <div class="card list"><div class="li"><div class="grow"><div class="ttl">Илья</div><div class="small muted">Москва · упаковка 250 ₽/м²</div></div></div><div class="li"><div class="grow"><div class="ttl">+ Новый клиент</div></div></div></div>`; }
+function renderShop(){ topbar('Цех'); $('view').innerHTML = `${stub('v5','Очередь по сроку, отметки по заказу целиком')}
+  <div class="card list"><div class="li"><div class="grow"><div class="ttl">2026-0006 · Илья · 3,2 м²</div><div class="small muted">покраска · срок 05.11</div></div></div></div>
+  <div class="row"><button class="btn pri grow">Сделал</button><button class="btn grow">Частично</button><button class="btn">Пауза</button></div>`; }
+function renderMore(){
+  topbar('Ещё'); const items=MORE.filter(m=>m.roles.includes(S.role));
+  if(S.screen.startsWith('more:')){ const m=MORE.find(x=>'more:'+x.k===S.screen); topbar(m.t,true); $('view').innerHTML = moreScreen(m); return; }
+  $('view').innerHTML = `<div class="card list">${items.map(m=>`<button class="li" data-more="${m.k}"><div class="grow"><div class="ttl">${m.t}</div><div class="small muted">${m.d}</div></div><span class="soon">${m.ver}</span></button>`).join('')}</div>
+  <p class="small muted">Разделы подключаются по одному, по мере готовности. Клиентский интерфейс для заказчиков — отдельное приложение, позже.</p>`;
+}
+function moreScreen(m){
+  if(m.k==='prices') return `${stub(m.ver)}<div class="seg"><button aria-pressed="true">Москва Казань</button><button>Остальные</button></div>
+    <div class="tablewrap"><table><thead><tr><th>Модель</th><th class="r">Матовые</th><th class="r">Глянец</th><th class="r">Металлик</th></tr></thead><tbody>
+    ${Object.entries(PRICE).map(([k,v])=>`<tr><td>${k}</td>${v.map(x=>`<td class="r num">${x.toLocaleString('ru-RU')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <button class="btn pri" disabled>Отправить клиенту PDF</button>`;
+  if(m.k==='learn') return `${stub(m.ver,'Пример: так будут выглядеть предложенные правила')}
+    <div class="card"><div class="small muted">Пример правила · у клиента «Пример А» 3 правки подряд</div><div style="margin:6px 0">«кувалда» → модель <b>Modern M-5</b></div><div class="row"><button class="btn pri">Подтвердить</button><button class="btn">Отклонить</button></div></div>
+    <div class="tiles"><div class="tile"><b>—</b><span>доля полей без правок</span></div><div class="tile"><b>${S.log.length}</b><span>правок в этой сессии</span></div></div>`;
+  if(m.k==='settings') return `${stub(m.ver)}<div class="card list">${[['Евгений','разработчик'],['Дима','владелец'],['Мария','менеджер']].map(r=>`<div class="li"><div class="grow"><div class="ttl">${r[0]}</div></div><span class="chip">${r[1]}</span></div>`).join('')}</div>`;
+  return `${stub(m.ver)}<div class="card small muted">${m.d}</div>`;
+}
+
+/* ===== События ===== */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-tab],[data-open],[data-inner],[data-view],[data-pos],[data-act],[data-more],[data-goto]'); if(!t) return;
+  if(t.dataset.tab){S.tab=t.dataset.tab;S.screen=t.dataset.tab==='more'?'':'list';S.select=false;S.sel.clear();return render();}
+  if(t.dataset.goto){S.tab=t.dataset.goto;S.screen='list';return render();}
+  if(t.dataset.open){S.order=+t.dataset.open;S.screen='req';S.inner='pos';return render();}
+  if(t.dataset.inner){S.inner=t.dataset.inner;return render();}
+  if(t.dataset.view){S.view=t.dataset.view;return render();}
+  if(t.dataset.more){S.screen='more:'+t.dataset.more;return render();}
+  if(t.dataset.pos){ if(S.select){const id=+t.dataset.pos;S.sel.has(id)?S.sel.delete(id):S.sel.add(id);return render();} return openEdit(t.dataset.pos); }
+  const a=t.dataset.act;
+  if(a==='back'){S.screen=S.tab==='more'?'':'list';return render();}
+  if(a==='doubt'){S.onlyDoubt=!S.onlyDoubt;return render();}
+  if(a==='select'){S.select=!S.select;S.sel.clear();return render();}
+  if(a==='selall'){const shown=POS.filter(p=>p.order===S.order&&(!S.onlyDoubt||p.conf!=='h'));
+    if(S.sel.size===shown.length) S.sel.clear(); else shown.forEach(p=>S.sel.add(p.id)); return render();}
+  if(a==='bulk') return openBulk();
+  if(a==='b-move'){let to=$('b-to').value; const sel=selected(); to = to==='new'?newOrder(sel[0]&&sel[0].color):+to;
+    const tc=$('b-color').checked; sel.forEach(p=>{log('л'+p.sheet+'·'+p.n,'Заказ',ORDERS[p.order].id,ORDERS[to].id);p.order=to;if(tc&&ORDERS[to].color!=='уточнить')p.color=ORDERS[to].color;p.conf='h';});
+    return bulkDone(`Перенесено в ${ORDERS[to].id}: ${sel.length} поз.`);}
+  if(a==='b-set'){const k=$('b-field').value, name=BULK_FIELDS[k][0]; let v=$('b-val').value; if(k==='th') v=Number(v);
+    const sel=selected(); sel.forEach(p=>{if(String(p[k])!==String(v)){log('л'+p.sheet+'·'+p.n,name,p[k],v);p[k]=v;}});
+    return bulkDone(`${name}: изменено у ${sel.length} поз.`);}
+  if(a==='b-delask'){ $('b-delwrap').innerHTML=`<div class="confirm">Удалить ${S.sel.size} поз. из заявки? <button class="btn danger" data-act="b-del">Да, удалить</button><button class="btn" data-act="b-delno">Нет</button></div>`; return; }
+  if(a==='b-delno'){ $('b-delwrap').innerHTML=`<button class="btn danger" data-act="b-delask">Удалить ${S.sel.size} поз.</button>`; return; }
+  if(a==='b-del'){const sel=selected(); sel.forEach(p=>{log('л'+p.sheet+'·'+p.n,'Позиция удалена',`${p.h}×${p.w}×${p.qty}`,'');POS.splice(POS.indexOf(p),1);}); return bulkDone(`Удалено: ${sel.length} поз.`);}
+  if(a==='add') return openEdit('new');
+  if(a==='close') return closeEdit();
+  if(a==='del'){const p=S.editing.p;log('л'+p.sheet+'·'+p.n,'Позиция удалена',`${p.h}×${p.w}×${p.qty}`,'');POS.splice(POS.indexOf(p),1);S.dirty=true;closeEdit();render();return toast('Позиция удалена');}
+  if(a==='save'){S.dirty=false;render();return toast('Сохранено. Сводка в боте обновлена');}
+  if(a==='ok'){return toast(S.dirty?'Сначала сохраните правки':'Отмечено «Верно». Бот готовит КП');}
+});
+document.addEventListener('submit',e=>{ if(e.target.id==='ef'){ e.preventDefault(); applyEdit(); }});
+$('role').addEventListener('change',e=>{S.role=e.target.value;S.screen='list';S.tab='home';render();});
+render();
+</script>
